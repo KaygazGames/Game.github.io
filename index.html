@@ -3,429 +3,243 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Windows Hack Simulator</title>
+  <title>Kali Hack Simulator</title>
   <style>
-    /* Genel Ayarlar */
+    /* Genel Stil – Kali Linux Teması */
     body, html {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: "Segoe UI", sans-serif;
-      user-select: none;
+      background-color: #000;
+      color: #0f0;
+      font-family: "Courier New", monospace;
+      overflow: hidden;
     }
-    /* Masaüstü (Desktop) */
-    #desktop {
-      position: relative;
+    /* Splash Ekranı */
+    #splash {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      background: url('https://wallpaperaccess.com/full/317501.jpg') no-repeat center center fixed;
-      background-size: cover;
-    }
-    /* Masaüstü ikonları */
-    .icon {
-      width: 80px;
-      text-align: center;
-      margin: 10px;
-      cursor: pointer;
-      display: inline-block;
-    }
-    .icon img {
-      width: 64px;
-      height: 64px;
-    }
-    .icon span {
-      display: block;
-      color: white;
-      text-shadow: 1px 1px 2px black;
-      font-size: 12px;
-    }
-    /* Uygulama pencereleri */
-    .window {
-      position: absolute;
-      width: 600px;
-      height: 400px;
-      background: #fff;
-      border: 2px solid #000;
-      box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
-      top: 50px;
-      left: 50px;
-      display: none;
+      background-color: #000;
+      display: flex;
       flex-direction: column;
-    }
-    .window .titlebar {
-      background: #0078D7;
-      color: white;
-      padding: 5px 10px;
-      cursor: move;
-      display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
+      z-index: 1000;
     }
-    .window .titlebar .close-btn {
-      background: red;
-      border: none;
-      color: white;
-      width: 20px;
-      height: 20px;
-      text-align: center;
-      cursor: pointer;
-    }
-    .window .content {
-      background: black;
-      color: #0f0;
-      padding: 10px;
-      flex: 1;
-      overflow-y: auto;
-      font-family: Consolas, monospace;
-      font-size: 14px;
-    }
-    .window .footer {
-      padding: 5px 10px;
-      background: #ddd;
-      text-align: right;
-    }
-    .window button {
-      padding: 5px 10px;
-      background: #e1e1e1;
-      border: 1px solid #000;
-      cursor: pointer;
-      font-family: "Segoe UI", sans-serif;
-    }
-    /* Taskbar */
-    #taskbar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 40px;
-      width: 100%;
-      background: #0078D7;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-      box-sizing: border-box;
-    }
-    #startButton {
-      background: #0078D7;
-      border: none;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #clock {
-      color: white;
-      font-size: 16px;
-    }
-    /* Basit Start Menüsü */
-    #startMenu {
-      display: none;
-      position: absolute;
-      bottom: 40px;
-      left: 0;
-      width: 200px;
-      background: #fff;
-      border: 1px solid #000;
-    }
-    #startMenu ul {
-      list-style: none;
+    #splash h1 {
+      font-size: 48px;
       margin: 0;
-      padding: 10px;
+      color: #FF4500;
     }
-    #startMenu li {
-      padding: 5px;
+    #splash p {
+      margin: 10px 0;
+      font-size: 18px;
+      color: #FF4500;
+    }
+    /* Terminal Arayüzü */
+    #terminal {
+      display: none;
+      padding: 20px;
+      box-sizing: border-box;
+      height: 100%;
+      overflow-y: auto;
+    }
+    #terminal button {
+      background-color: #FF4500;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: #000;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    /* Admin Şifre Modalı */
+    #passwordModal {
+      display: none;
+      position: fixed;
+      z-index: 1100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+    }
+    #passwordModalContent {
+      background-color: #222;
+      padding: 20px;
+      border: 2px solid #FF4500;
+      width: 300px;
+      text-align: center;
+      color: #0f0;
+    }
+    #passwordModalContent input {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      background: #000;
+      border: 1px solid #0f0;
+      color: #0f0;
+    }
+    #passwordModalContent button {
+      background-color: #FF4500;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: #000;
       cursor: pointer;
     }
-    #startMenu li:hover {
-      background: #0078D7;
-      color: white;
-    }
-    
-    /* Mobil uyumluluk için medya sorguları */
+    /* Mobil Uyumluluk */
     @media (max-width: 768px) {
-      .icon {
-        width: 60px;
-        margin: 5px;
+      #splash h1 {
+        font-size: 36px;
       }
-      .icon img {
-        width: 48px;
-        height: 48px;
+      #splash p {
+        font-size: 16px;
       }
-      .icon span {
-        font-size: 10px;
+      #terminal {
+        padding: 10px;
       }
-      .window {
-        width: 90%;
-        height: 50%;
-        top: 20%;
-        left: 5%;
-      }
-      #startMenu {
-        width: 150px;
-      }
-      #taskbar {
-        height: 35px;
-      }
-      #startButton, #clock {
+      #terminal button {
         font-size: 14px;
+        padding: 8px 16px;
+      }
+      #passwordModalContent {
+        width: 80%;
       }
     }
   </style>
 </head>
 <body>
-<div id="desktop">
-  <!-- Masaüstü İkonları -->
-  <div class="icon" ondblclick="openHackTerminal()">
-    <img src="https://cdn-icons-png.flaticon.com/512/833/833281.png" alt="Hack Terminal">
-    <span>Hack Terminal</span>
-  </div>
-  <div class="icon" ondblclick="openNetworkScanner()">
-    <img src="https://cdn-icons-png.flaticon.com/512/481/481142.png" alt="Network Scanner">
-    <span>Network Scanner</span>
-  </div>
-  <div class="icon" ondblclick="openFileExplorer()">
-    <img src="https://cdn-icons-png.flaticon.com/512/1792/1792498.png" alt="File Explorer">
-    <span>File Explorer</span>
-  </div>
-  <div class="icon" ondblclick="openProcessManager()">
-    <img src="https://cdn-icons-png.flaticon.com/512/1077/1077063.png" alt="Process Manager">
-    <span>Process Manager</span>
+  <!-- Splash Ekranı: Kali Linux Booting -->
+  <div id="splash">
+    <h1>Kali Linux Booting...</h1>
+    <p>Loading system modules, please wait...</p>
   </div>
   
-  <!-- Hack Terminal Penceresi -->
-  <div class="window" id="hackTerminalWindow">
-    <div class="titlebar">Hack Terminal
-      <button class="close-btn" onclick="closeWindow('hackTerminalWindow')">X</button>
+  <!-- Terminal Arayüzü -->
+  <div id="terminal">
+    <div id="output">
+      <p>[+] Sistem başlatıldı.</p>
     </div>
-    <div class="content" id="hackTerminalContent">
-      [+] Welcome to Hack Terminal...
-    </div>
-    <div class="footer">
-      <button onclick="startHackSimulation()">Start Hack</button>
+    <button onclick="startHack()">Start Hack</button>
+  </div>
+  
+  <!-- Admin Şifre Modalı -->
+  <div id="passwordModal">
+    <div id="passwordModalContent">
+      <p>Admin şifresini girin:</p>
+      <input type="password" id="adminPassword" placeholder="Şifre">
+      <br>
+      <button onclick="submitPassword()">Gönder</button>
     </div>
   </div>
   
-  <!-- Network Scanner Penceresi -->
-  <div class="window" id="networkScannerWindow">
-    <div class="titlebar">Network Scanner
-      <button class="close-btn" onclick="closeWindow('networkScannerWindow')">X</button>
-    </div>
-    <div class="content" id="networkScannerContent">
-      [+] Starting network scan...
-    </div>
-  </div>
-  
-  <!-- File Explorer Penceresi -->
-  <div class="window" id="fileExplorerWindow">
-    <div class="titlebar">File Explorer
-      <button class="close-btn" onclick="closeWindow('fileExplorerWindow')">X</button>
-    </div>
-    <div class="content" id="fileExplorerContent">
-      <pre>
-C:\>
-├── Windows
-│   ├── System32
-│   └── Temp
-├── Program Files
-│   ├── App1
-│   └── App2
-└── Users
-    ├── Public
-    └── JohnDoe (Hacked)
-      └── secret.txt
-      </pre>
-    </div>
-  </div>
-  
-  <!-- Process Manager Penceresi -->
-  <div class="window" id="processManagerWindow">
-    <div class="titlebar">Process Manager
-      <button class="close-btn" onclick="closeWindow('processManagerWindow')">X</button>
-    </div>
-    <div class="content" id="processManagerContent">
-      <table id="processTable" style="width:100%; color:#0f0; font-family: Consolas, monospace; font-size:14px;" border="1">
-        <tr>
-          <th>PID</th>
-          <th>Process</th>
-          <th>CPU</th>
-          <th>RAM</th>
-        </tr>
-        <tr>
-          <td>1001</td>
-          <td>explorer.exe</td>
-          <td>5%</td>
-          <td>120 MB</td>
-        </tr>
-        <tr>
-          <td>1002</td>
-          <td>cmd.exe</td>
-          <td>2%</td>
-          <td>30 MB</td>
-        </tr>
-        <tr>
-          <td>1003</td>
-          <td>hacktool.exe</td>
-          <td>10%</td>
-          <td>200 MB</td>
-        </tr>
-      </table>
-    </div>
-  </div>
-  
-  <!-- Taskbar -->
-  <div id="taskbar">
-    <button id="startButton" onclick="toggleStartMenu()">Start</button>
-    <div id="clock"></div>
-  </div>
-  
-  <!-- Basit Start Menüsü -->
-  <div id="startMenu">
-    <ul>
-      <li ondblclick="openHackTerminal()">Hack Terminal</li>
-      <li ondblclick="openNetworkScanner()">Network Scanner</li>
-      <li ondblclick="openFileExplorer()">File Explorer</li>
-      <li ondblclick="openProcessManager()">Process Manager</li>
-    </ul>
-  </div>
-</div>
-
-<script>
-  // Saat Güncellemesi
-  function updateClock() {
-    var now = new Date();
-    var timeString = now.toLocaleTimeString();
-    document.getElementById('clock').innerText = timeString;
-  }
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  function toggleStartMenu() {
-    var menu = document.getElementById('startMenu');
-    if (menu.style.display === 'none' || menu.style.display === '') {
-      menu.style.display = 'block';
-    } else {
-      menu.style.display = 'none';
-    }
-  }
-  
-  function openHackTerminal() {
-    var win = document.getElementById('hackTerminalWindow');
-    win.style.display = 'flex';
-    win.style.top = "100px";
-    win.style.left = "100px";
-  }
-  
-  function openNetworkScanner() {
-    var win = document.getElementById('networkScannerWindow');
-    win.style.display = 'flex';
-    win.style.top = "150px";
-    win.style.left = "150px";
-    startNetworkScanSimulation();
-  }
-  
-  function openFileExplorer() {
-    var win = document.getElementById('fileExplorerWindow');
-    win.style.display = 'flex';
-    win.style.top = "200px";
-    win.style.left = "200px";
-  }
-  
-  function openProcessManager() {
-    var win = document.getElementById('processManagerWindow');
-    win.style.display = 'flex';
-    win.style.top = "250px";
-    win.style.left = "250px";
-    startProcessUpdates();
-  }
-  
-  function closeWindow(winId) {
-    document.getElementById(winId).style.display = 'none';
-  }
-  
-  // Hack Terminal Simülasyonu
-  function startHackSimulation() {
-    var content = document.getElementById('hackTerminalContent');
-    content.innerHTML = "[+] Connecting to target server...<br>";
-    var steps = [
-      "[+] IP range detected: 192.168.0.1 - 192.168.0.255",
-      "[+] Scanning open ports...",
-      "[+] Port 22 open",
-      "[+] Port 80 open",
-      "[+] Port 443 open",
-      "[+] Executing SQL payload...",
-      "[+] Bypassing firewall...",
-      "[+] Accessing root directory...",
-      "[+] Downloading hidden files...",
-      "[+] File: passwords.txt [#####     ] 50%",
-      "[+] File: passwords.txt [##########] 100%",
-      "[+] Hack successful! Access granted."
-    ];
-    var i = 0;
-    function nextStep() {
-      if (i < steps.length) {
-        content.innerHTML += steps[i] + "<br>";
-        content.scrollTop = content.scrollHeight;
-        i++;
-        setTimeout(nextStep, 700);
-      }
-    }
-    setTimeout(nextStep, 700);
-  }
-  
-  // Network Scanner Simülasyonu
-  function startNetworkScanSimulation() {
-    var content = document.getElementById('networkScannerContent');
-    content.innerHTML = "[+] Starting network scan...<br>";
-    var steps = [
-      "[+] Discovering devices...",
-      "[+] Device found: 192.168.0.101 (Windows PC)",
-      "[+] Device found: 192.168.0.102 (Linux Server)",
-      "[+] Device found: 192.168.0.103 (IoT Camera)",
-      "[+] Network scan complete."
-    ];
-    var i = 0;
-    function nextStep() {
-      if (i < steps.length) {
-        content.innerHTML += steps[i] + "<br>";
-        content.scrollTop = content.scrollHeight;
-        i++;
-        setTimeout(nextStep, 800);
-      }
-    }
-    setTimeout(nextStep, 800);
-  }
-  
-  // Process Manager: Rastgele CPU ve RAM kullanımı güncellemesi
-  function startProcessUpdates() {
-    var table = document.getElementById('processTable');
-    // Her 2 saniyede bir tablo satırlarını güncelle
-    setInterval(function() {
-      for (var i = 1; i < table.rows.length; i++) {
-        var cpu = Math.floor(Math.random() * 20) + 1; // %1-%20 arası
-        var ram = Math.floor(Math.random() * 300) + 50; // 50-350 MB arası
-        table.rows[i].cells[2].innerText = cpu + "%";
-        table.rows[i].cells[3].innerText = ram + " MB";
-      }
-    }, 2000);
-  }
-  
-  // Sürükle-bırak (draggable) pencereler
-  document.querySelectorAll('.window').forEach(function(win) {
-    var header = win.querySelector('.titlebar');
-    header.onmousedown = function(e) {
-      var offsetX = e.clientX - win.offsetLeft;
-      var offsetY = e.clientY - win.offsetTop;
-      function mouseMoveHandler(e) {
-        win.style.left = (e.clientX - offsetX) + "px";
-        win.style.top = (e.clientY - offsetY) + "px";
-      }
-      function reset() {
-        document.removeEventListener('mousemove', mouseMoveHandler);
-        document.removeEventListener('mouseup', reset);
-      }
-      document.addEventListener('mousemove', mouseMoveHandler);
-      document.addEventListener('mouseup', reset);
+  <script>
+    // Splash ekranı: 3 saniye sonra terminal arayüzü açılır.
+    window.onload = function() {
+      setTimeout(function(){
+        document.getElementById('splash').style.display = 'none';
+        document.getElementById('terminal').style.display = 'block';
+      }, 3000);
     };
-  });
-</script>
+    
+    function startHack() {
+      var output = document.getElementById('output');
+      output.innerHTML = "";
+      var steps = [
+        "[+] Hedef sunucuya bağlanılıyor...",
+        "[+] Keşif yapılıyor...",
+        "[+] Açık portlar taranıyor...",
+        "[+] Port 22: Açık",
+        "[+] Port 80: Açık",
+        "[+] Port 443: Açık",
+        "[+] SQL payload çalıştırılıyor...",
+        "[+] Güvenlik duvarı aşıldı...",
+        "[+] Root dizinine erişildi...",
+        "[+] Gizli dosyalar indiriliyor...",
+        "[+] Dosya: passwords.txt [#####     ] 50%",
+        "[+] Dosya: passwords.txt [##########] 100%",
+        "[+] Hack başarılı! Erişim verildi."
+      ];
+      var i = 0;
+      function nextStep() {
+        if (i < steps.length) {
+          output.innerHTML += "<p>" + steps[i] + "</p>";
+          output.scrollTop = output.scrollHeight;
+          i++;
+          setTimeout(nextStep, 800);
+        } else {
+          output.innerHTML += "<p>[+] Sistem Bilgilerini İncele için admin modülü açılıyor...</p>";
+          output.innerHTML += '<button onclick="openAdminModal()">Sistem Bilgilerini İncele</button>';
+        }
+      }
+      nextStep();
+    }
+    
+    function openAdminModal() {
+      document.getElementById('passwordModal').style.display = "flex";
+    }
+    
+    function submitPassword() {
+      var pass = document.getElementById('adminPassword').value;
+      var output = document.getElementById('output');
+      document.getElementById('passwordModal').style.display = "none";
+      if (pass === "Bilmem") {
+        output.innerHTML += "<p>[+] Şifre kabul edildi. Yükleme için hazırlanıyor...</p>";
+        setTimeout(function(){
+          simulateFlashProcess();
+        }, 1500);
+      } else {
+        output.innerHTML += "<p>[!] Yanlış şifre!</p>";
+      }
+    }
+    
+    function simulateFlashProcess() {
+      var output = document.getElementById('output');
+      var flashSteps = [
+        "[+] Flash belleği siliyor... (0%)",
+        "[+] Flash belleği siliyor... (25%)",
+        "[+] Flash belleği siliyor... (50%)",
+        "[+] Flash belleği siliyor... (75%)",
+        "[+] Flash belleği siliyor... (100%)",
+        "[+] Flash silme tamamlandı.",
+        "[+] Payload yazılıyor... (10%)",
+        "[+] Payload yazılıyor... (30%)",
+        "[+] Payload yazılıyor... (60%)",
+        "[+] Payload yazılıyor... (80%)",
+        "[+] Payload yazılıyor... (100%)",
+        "[+] Flash işlemi tamamlandı. Payload başarıyla yüklendi.",
+        "[+] Sistem bilgileri alınıyor..."
+      ];
+      var j = 0;
+      function nextFlash() {
+        if (j < flashSteps.length) {
+          output.innerHTML += "<p>" + flashSteps[j] + "</p>";
+          output.scrollTop = output.scrollHeight;
+          j++;
+          setTimeout(nextFlash, 600);
+        } else {
+          showSystemInfo();
+        }
+      }
+      nextFlash();
+    }
+    
+    function showSystemInfo() {
+      var output = document.getElementById('output');
+      var info = "<p>[+] Sistem Bilgileri:</p>";
+      info += "<p>    İşletim Sistemi: Kali Linux</p>";
+      info += "<p>    WiFi Ağı: BK_Wifi</p>";
+      info += "<p>    IP Adresi: 192.168.1.101</p>";
+      info += "<p>    MAC Adresi: B8:27:EB:45:12:34</p>";
+      output.innerHTML += info;
+      output.scrollTop = output.scrollHeight;
+    }
+  </script>
 </body>
 </html>
