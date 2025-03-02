@@ -2,244 +2,113 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kali Hack Simulator</title>
+  <title>Banka ve Hacker Simülatörü</title>
   <style>
-    /* Genel Stil – Kali Linux Teması */
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background-color: #000;
-      color: #0f0;
-      font-family: "Courier New", monospace;
-      overflow: hidden;
-    }
-    /* Splash Ekranı */
-    #splash {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    #splash h1 {
-      font-size: 48px;
-      margin: 0;
-      color: #FF4500;
-    }
-    #splash p {
-      margin: 10px 0;
-      font-size: 18px;
-      color: #FF4500;
-    }
-    /* Terminal Arayüzü */
-    #terminal {
-      display: none;
-      padding: 20px;
-      box-sizing: border-box;
-      height: 100%;
-      overflow-y: auto;
-    }
-    #terminal button {
-      background-color: #FF4500;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      color: #000;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    /* Admin Şifre Modalı */
-    #passwordModal {
-      display: none;
-      position: fixed;
-      z-index: 1100;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-    }
-    #passwordModalContent {
-      background-color: #222;
-      padding: 20px;
-      border: 2px solid #FF4500;
-      width: 300px;
-      text-align: center;
-      color: #0f0;
-    }
-    #passwordModalContent input {
-      width: 80%;
-      padding: 10px;
-      margin: 10px 0;
-      background: #000;
-      border: 1px solid #0f0;
-      color: #0f0;
-    }
-    #passwordModalContent button {
-      background-color: #FF4500;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      color: #000;
-      cursor: pointer;
-    }
-    /* Mobil Uyumluluk */
-    @media (max-width: 768px) {
-      #splash h1 {
-        font-size: 36px;
-      }
-      #splash p {
-        font-size: 16px;
-      }
-      #terminal {
-        padding: 10px;
-      }
-      #terminal button {
-        font-size: 14px;
-        padding: 8px 16px;
-      }
-      #passwordModalContent {
-        width: 80%;
-      }
-    }
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #333; color: #fff; }
+    .message { margin: 10px 0; padding: 10px; background: #e7e7e7; border-left: 5px solid #333; }
+    button { padding: 8px 16px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <!-- Splash Ekranı: Kali Linux Booting -->
-  <div id="splash">
-    <h1>Kali Linux Booting...</h1>
-    <p>Loading system modules, please wait...</p>
+  <h1>Banka ve Hacker Simülatörü</h1>
+  <p>Her hesabın başlangıç bakiyesi 1000 TL'dir. Hesaplar arasında hacklemeler yapabilirsiniz. Başarılı olursanız hedefin bakiyesinden para çalarsınız, yakalanırsanız ceza alırsınız.</p>
+  
+  <div id="accounts"></div>
+  
+  <div>
+    <label for="source">Hacke Başlayacak Hesap:</label>
+    <select id="source"></select>
+    <label for="target">Hedef Hesap:</label>
+    <select id="target"></select>
+    <button id="hackButton">Hackle!</button>
   </div>
   
-  <!-- Terminal Arayüzü -->
-  <div id="terminal">
-    <div id="output">
-      <p>[+] Sistem başlatıldı.</p>
-    </div>
-    <button onclick="startHack()">Start Hack</button>
-  </div>
-  
-  <!-- Admin Şifre Modalı -->
-  <div id="passwordModal">
-    <div id="passwordModalContent">
-      <p>Admin şifresini girin:</p>
-      <input type="password" id="adminPassword" placeholder="Şifre">
-      <br>
-      <button onclick="submitPassword()">Gönder</button>
-    </div>
-  </div>
+  <div class="message" id="messageArea"></div>
   
   <script>
-    // Splash ekranı: 3 saniye sonra terminal arayüzü açılır.
-    window.onload = function() {
-      setTimeout(function(){
-        document.getElementById('splash').style.display = 'none';
-        document.getElementById('terminal').style.display = 'block';
-      }, 3000);
-    };
-    
-    function startHack() {
-      var output = document.getElementById('output');
-      output.innerHTML = "";
-      var steps = [
-        "[+] Hedef sunucuya bağlanılıyor...",
-        "[+] Keşif yapılıyor...",
-        "[+] Açık portlar taranıyor...",
-        "[+] Port 22: Açık",
-        "[+] Port 80: Açık",
-        "[+] Port 443: Açık",
-        "[+] SQL payload çalıştırılıyor...",
-        "[+] Güvenlik duvarı aşıldı...",
-        "[+] Root dizinine erişildi...",
-        "[+] Gizli dosyalar indiriliyor...",
-        "[+] Dosya: passwords.txt [#####     ] 50%",
-        "[+] Dosya: passwords.txt [##########] 100%",
-        "[+] Hack başarılı! Erişim verildi."
-      ];
-      var i = 0;
-      function nextStep() {
-        if (i < steps.length) {
-          output.innerHTML += "<p>" + steps[i] + "</p>";
-          output.scrollTop = output.scrollHeight;
-          i++;
-          setTimeout(nextStep, 800);
-        } else {
-          output.innerHTML += "<p>[+] Sistem Bilgilerini İncele için admin modülü açılıyor...</p>";
-          output.innerHTML += '<button onclick="openAdminModal()">Sistem Bilgilerini İncele</button>';
-        }
+    // Hesaplarımızı oluşturuyoruz.
+    const accounts = [
+      { id: 1, name: "Kullanıcı1", balance: 1000 },
+      { id: 2, name: "Kullanıcı2", balance: 1000 },
+      { id: 3, name: "Kullanıcı3", balance: 1000 },
+      { id: 4, name: "Kullanıcı4", balance: 1000 }
+    ];
+
+    const accountsDiv = document.getElementById("accounts");
+    const sourceSelect = document.getElementById("source");
+    const targetSelect = document.getElementById("target");
+    const messageArea = document.getElementById("messageArea");
+
+    // Hesap tablosunu güncelleyen fonksiyon.
+    function updateAccountsTable() {
+      let html = '<table><tr><th>ID</th><th>Hesap Adı</th><th>Bakiye (TL)</th></tr>';
+      accounts.forEach(account => {
+        html += `<tr><td>${account.id}</td><td>${account.name}</td><td>${account.balance}</td></tr>`;
+      });
+      html += '</table>';
+      accountsDiv.innerHTML = html;
+    }
+
+    // Seçim kutularını dolduruyoruz.
+    function updateSelectBoxes() {
+      sourceSelect.innerHTML = "";
+      targetSelect.innerHTML = "";
+      accounts.forEach(account => {
+        const option1 = document.createElement("option");
+        option1.value = account.id;
+        option1.textContent = account.name;
+        sourceSelect.appendChild(option1);
+
+        const option2 = document.createElement("option");
+        option2.value = account.id;
+        option2.textContent = account.name;
+        targetSelect.appendChild(option2);
+      });
+    }
+
+    // Başlangıçta tablo ve seçim kutularını güncelle.
+    updateAccountsTable();
+    updateSelectBoxes();
+
+    // Hackleme butonuna tıklanma olayı.
+    document.getElementById("hackButton").addEventListener("click", function(){
+      const sourceId = parseInt(sourceSelect.value);
+      const targetId = parseInt(targetSelect.value);
+
+      if(sourceId === targetId) {
+        messageArea.textContent = "Kendi hesabını hacklemeye çalışmak pek akıllıca değil!";
+        return;
       }
-      nextStep();
-    }
-    
-    function openAdminModal() {
-      document.getElementById('passwordModal').style.display = "flex";
-    }
-    
-    function submitPassword() {
-      var pass = document.getElementById('adminPassword').value;
-      var output = document.getElementById('output');
-      document.getElementById('passwordModal').style.display = "none";
-      if (pass === "Bilmem") {
-        output.innerHTML += "<p>[+] Şifre kabul edildi. Yükleme için hazırlanıyor...</p>";
-        setTimeout(function(){
-          simulateFlashProcess();
-        }, 1500);
+      
+      const sourceAcc = accounts.find(acc => acc.id === sourceId);
+      const targetAcc = accounts.find(acc => acc.id === targetId);
+
+      // %50 hackleme başarı şansı.
+      const hackSuccess = Math.random() < 0.5;
+      // %30 yakalanma şansı (hack başarısızsa).
+      const caught = Math.random() < 0.3;
+      
+      if(hackSuccess) {
+        // Hedefin bakiyesinin %10'u kadar para çalınıyor.
+        const stealAmount = Math.floor(targetAcc.balance * 0.1);
+        targetAcc.balance = Math.max(targetAcc.balance - stealAmount, 0);
+        sourceAcc.balance += stealAmount;
+        messageArea.textContent = `${sourceAcc.name}, ${targetAcc.name}'den ${stealAmount} TL başarıyla çaldı!`;
       } else {
-        output.innerHTML += "<p>[!] Yanlış şifre!</p>";
-      }
-    }
-    
-    function simulateFlashProcess() {
-      var output = document.getElementById('output');
-      var flashSteps = [
-        "[+] Flash belleği siliyor... (0%)",
-        "[+] Flash belleği siliyor... (25%)",
-        "[+] Flash belleği siliyor... (50%)",
-        "[+] Flash belleği siliyor... (75%)",
-        "[+] Flash belleği siliyor... (100%)",
-        "[+] Flash silme tamamlandı.",
-        "[+] Payload yazılıyor... (10%)",
-        "[+] Payload yazılıyor... (30%)",
-        "[+] Payload yazılıyor... (60%)",
-        "[+] Payload yazılıyor... (80%)",
-        "[+] Payload yazılıyor... (100%)",
-        "[+] Flash işlemi tamamlandı. Payload başarıyla yüklendi.",
-        "[+] Sistem bilgileri alınıyor..."
-      ];
-      var j = 0;
-      function nextFlash() {
-        if (j < flashSteps.length) {
-          output.innerHTML += "<p>" + flashSteps[j] + "</p>";
-          output.scrollTop = output.scrollHeight;
-          j++;
-          setTimeout(nextFlash, 600);
+        if(caught) {
+          // Hacker, kendi bakiyesinin %10'u kadar ceza ödüyor.
+          const penalty = Math.floor(sourceAcc.balance * 0.1);
+          sourceAcc.balance = Math.max(sourceAcc.balance - penalty, 0);
+          messageArea.textContent = `${sourceAcc.name}, hackleme sırasında yakalandı! ${penalty} TL ceza ödedi.`;
         } else {
-          showSystemInfo();
+          messageArea.textContent = `${sourceAcc.name}'in hackleme girişimi başarısız oldu, ama yakalanmadı.`;
         }
       }
-      nextFlash();
-    }
-    
-    function showSystemInfo() {
-      var output = document.getElementById('output');
-      var info = "<p>[+] Sistem Bilgileri:</p>";
-      info += "<p>    İşletim Sistemi: Kali Linux</p>";
-      info += "<p>    WiFi Ağı: BK_Wifi</p>";
-      info += "<p>    IP Adresi: 192.168.1.101</p>";
-      info += "<p>    MAC Adresi: B8:27:EB:45:12:34</p>";
-      output.innerHTML += info;
-      output.scrollTop = output.scrollHeight;
-    }
+      updateAccountsTable();
+    });
   </script>
 </body>
 </html>
