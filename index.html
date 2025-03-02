@@ -2,120 +2,300 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Banka ve Hacker Simülatörü</title>
+  <title>Dinamik Banka & Hacker Simülatörü</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
     .hidden { display: none; }
     input, button { padding: 10px; margin: 5px; }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-    th { background-color: #333; color: white; }
+    th { background-color: #333; color: #fff; }
+    .form-container { background: #fff; padding: 15px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; }
+    .message { padding: 10px; background: #e7e7e7; border-left: 5px solid #333; margin-top: 10px; }
+
+    /* Modal Stilleri */
+    #hackModal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: none;
+      align-items: center; justify-content: center;
+    }
+    #hackModal .modal-content {
+      background: #fff; padding: 20px; border-radius: 4px; width: 300px; text-align: center;
+    }
+    #hackModal button {
+      margin: 10px;
+    }
   </style>
 </head>
 <body>
+  <header>
+    <h1>Dinamik Banka & Hacker Simülatörü</h1>
+    <button id="logoutButton" class="hidden">Çıkış Yap</button>
+  </header>
 
-  <h1>Banka & Hacker Simülatörü</h1>
-
-  <!-- Giriş / Kayıt -->
-  <div id="auth-section">
-    <h2>Giriş Yap</h2>
-    <input type="text" id="username" placeholder="Kullanıcı Adı">
-    <input type="password" id="password" placeholder="Şifre">
-    <button onclick="login()">Giriş Yap</button>
-    <div id="loginMessage"></div>
+  <!-- Giriş / Kayıt Bölümü -->
+  <div id="auth-section" class="form-container">
+    <h2>Hesap Oluştur / Oturum Aç</h2>
+    <div id="registerDiv">
+      <h3>Kayıt Ol</h3>
+      <input type="text" id="regUsername" placeholder="Kullanıcı Adı" required>
+      <input type="password" id="regPassword" placeholder="Şifre" required>
+      <button id="registerButton">Kayıt Ol</button>
+    </div>
+    <hr>
+    <div id="loginDiv">
+      <h3>Oturum Aç</h3>
+      <input type="text" id="loginUsername" placeholder="Kullanıcı Adı" required>
+      <input type="password" id="loginPassword" placeholder="Şifre" required>
+      <button id="loginButton">Oturum Aç</button>
+    </div>
+    <div class="message" id="authMessage"></div>
   </div>
 
-  <!-- Oyunun Ana Bölümü -->
-  <div id="game-section" class="hidden">
-    <h2>Hoş geldin, <span id="currentUser"></span></h2>
-    <p>Bakiye: <strong>$<span id="balance"></span></strong></p>
+  <!-- Simülasyon Bölümü -->
+  <div id="simulation-section" class="hidden form-container">
+    <h2>Merhaba, <span id="currentUserName"></span>!</h2>
+    <p>Bakiye: \$<span id="currentUserBalance"></span></p>
 
-    <h3>Kullanıcılar:</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Kullanıcı Adı</th>
-          <th>Bakiye</th>
-          <th>Hackle</th>
-        </tr>
-      </thead>
-      <tbody id="userTable"></tbody>
-    </table>
+    <h3>Tüm Kullanıcılar</h3>
+    <div id="usersList"></div>
+
+    <h3>Hackle</h3>
+    <p>
+      Hackleme için hedef kullanıcıyı seçin.<br>
+      İşlem ücreti 100 \$’dır. Hack moduna girdikten sonra, doğru hack şifresini seçerseniz hedef hesaptan 100 \$ çalınır, yanlış seçerseniz 100 \$ ceza kesilir.
+    </p>
+    <div id="hackTargetArea"></div>
+    <div class="message" id="simMessage"></div>
+  </div>
+
+  <!-- Hack Modal (özel ekran) -->
+  <div id="hackModal">
+    <div class="modal-content">
+      <h3>Hack Modu</h3>
+      <p>Lütfen aşağıdaki seçeneklerden doğru hack şifresini seçiniz:</p>
+      <div id="hackOptions"></div>
+      <button onclick="cancelHack()">İptal</button>
+    </div>
   </div>
 
   <script>
-    let users = [];
-    let currentUser = null;
-
-    async function fetchData() {
-      try {
-        const response = await fetch('data.json');
-        users = await response.json();
-        console.log("Kullanıcılar yüklendi:", users);
-      } catch (error) {
-        console.error("Veri yüklenemedi:", error);
+    /***** Kullanıcı Yönetimi için Yardımcı Fonksiyonlar *****/
+    // Kullanıcı verilerini localStorage'da saklıyoruz
+    function loadUsers() {
+      const users = localStorage.getItem("users");
+      return users ? JSON.parse(users) : [];
+    }
+    function saveUsers(users) {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+    function setCurrentUser(username) {
+      localStorage.setItem("currentUser", username);
+    }
+    function getCurrentUser() {
+      return localStorage.getItem("currentUser");
+    }
+    function clearCurrentUser() {
+      localStorage.removeItem("currentUser");
+    }
+    function registerUser(username, password) {
+      let users = loadUsers();
+      if (users.find(u => u.username === username)) {
+        return false;
       }
+      users.push({ username, password, balance: 1000 });
+      saveUsers(users);
+      return true;
+    }
+    function loginUser(username, password) {
+      const users = loadUsers();
+      return users.find(u => u.username === username && u.password === password) || null;
+    }
+    function updateUser(updatedUser) {
+      let users = loadUsers();
+      users = users.map(u => u.username === updatedUser.username ? updatedUser : u);
+      saveUsers(users);
     }
 
-    function login() {
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
+    /***** DOM Elemanları *****/
+    const authSection = document.getElementById("auth-section");
+    const simulationSection = document.getElementById("simulation-section");
+    const authMessage = document.getElementById("authMessage");
+    const simMessage = document.getElementById("simMessage");
+    const currentUserNameSpan = document.getElementById("currentUserName");
+    const currentUserBalanceSpan = document.getElementById("currentUserBalance");
+    const usersListDiv = document.getElementById("usersList");
+    const hackTargetArea = document.getElementById("hackTargetArea");
+    const logoutButton = document.getElementById("logoutButton");
 
-      currentUser = users.find(user => user.username === username && user.password === password);
-      if (currentUser) {
-        document.getElementById('auth-section').classList.add('hidden');
-        document.getElementById('game-section').classList.remove('hidden');
-        document.getElementById('currentUser').textContent = currentUser.username;
-        document.getElementById('balance').textContent = currentUser.balance;
-        renderUsers();
-      } else {
-        document.getElementById('loginMessage').textContent = 'Geçersiz kullanıcı adı veya şifre!';
-      }
-    }
-
-    function renderUsers() {
-      const table = document.getElementById('userTable');
-      table.innerHTML = '';
-
-      users.forEach(user => {
-        if (user.username !== currentUser.username) {
-          table.innerHTML += `
-            <tr>
-              <td>${user.username}</td>
-              <td>$${user.balance}</td>
-              <td><button onclick="hack('${user.username}')">Hackle (100$)</button></td>
-            </tr>
-          `;
-        }
-      });
-    }
-
-    function hack(targetUsername) {
-      const targetUser = users.find(user => user.username === targetUsername);
-      if (currentUser.balance < 100) {
-        alert('Yetersiz bakiye!');
+    /***** Kayıt & Oturum Açma İşlemleri *****/
+    document.getElementById("registerButton").addEventListener("click", function(){
+      const username = document.getElementById("regUsername").value.trim();
+      const password = document.getElementById("regPassword").value.trim();
+      if(username === "" || password === "") {
+        authMessage.textContent = "Lütfen tüm alanları doldurun.";
         return;
       }
-      currentUser.balance -= 100; // Hackleme ücreti
-      if (Math.random() < 0.5) { // %50 başarı
-        targetUser.balance -= 100;
-        currentUser.balance += 100;
-        alert(`${targetUsername} başarıyla hacklendi!`);
+      if(registerUser(username, password)) {
+        authMessage.textContent = "Kayıt başarılı! Artık oturum açabilirsiniz.";
       } else {
-        alert('Hackleme başarısız!');
+        authMessage.textContent = "Bu kullanıcı adı zaten alınmış.";
       }
-      document.getElementById('balance').textContent = currentUser.balance;
-      renderUsers();
-      saveData();
+    });
+    document.getElementById("loginButton").addEventListener("click", function(){
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      const user = loginUser(username, password);
+      if(user) {
+        setCurrentUser(username);
+        authMessage.textContent = "";
+        switchToSimulation();
+      } else {
+        authMessage.textContent = "Hatalı kullanıcı adı veya şifre.";
+      }
+    });
+    logoutButton.addEventListener("click", function(){
+      clearCurrentUser();
+      simulationSection.classList.add("hidden");
+      authSection.classList.remove("hidden");
+      logoutButton.classList.add("hidden");
+      authMessage.textContent = "";
+      simMessage.textContent = "";
+    });
+
+    /***** Simülasyon Sayfası ve Kullanıcı Arayüzü Güncelleme *****/
+    function switchToSimulation() {
+      const username = getCurrentUser();
+      if(!username) return;
+      authSection.classList.add("hidden");
+      simulationSection.classList.remove("hidden");
+      logoutButton.classList.remove("hidden");
+      const users = loadUsers();
+      const currentUser = users.find(u => u.username === username);
+      currentUserNameSpan.textContent = currentUser.username;
+      currentUserBalanceSpan.textContent = currentUser.balance;
+      updateUsersList();
+      updateHackTargetArea();
+    }
+    function updateUsersList() {
+      const users = loadUsers();
+      const currentUsername = getCurrentUser();
+      let html = '<table><tr><th>Kullanıcı Adı</th><th>Bakiye (\$)</th><th>İşlem</th></tr>';
+      users.forEach(u => {
+        if(u.username !== currentUsername) {
+          html += `<tr>
+                    <td>${u.username}</td>
+                    <td>${u.balance}</td>
+                    <td><button onclick="initHack('${u.username}')">Hackle (100\$)</button></td>
+                  </tr>`;
+        }
+      });
+      html += '</table>';
+      usersListDiv.innerHTML = html;
+    }
+    // Hacklenecek kullanıcı seçimi alanı
+    function updateHackTargetArea() {
+      const users = loadUsers();
+      const currentUsername = getCurrentUser();
+      let html = '<select id="targetSelect">';
+      users.forEach(u => {
+        if(u.username !== currentUsername) {
+          html += `<option value="${u.username}">${u.username}</option>`;
+        }
+      });
+      html += '</select> <button onclick="initHack(document.getElementById(\'targetSelect\').value)">Hackle (100\$)</button>';
+      hackTargetArea.innerHTML = html;
     }
 
-    async function saveData() {
-      console.log("Güncellenmiş veriler:", users);
-      alert('Veriler güncellenmiştir! (Not: GitHub Pages canlı olarak verileri güncelleyemez.)');
+    /***** Hack Modu Değişkenleri & Fonksiyonları *****/
+    let currentHackTarget = null;
+    let hackCorrectCode = "";
+    // Hack moduna giriş: hedef kullanıcı belirleniyor, yeterli bakiye kontrol ediliyor.
+    function initHack(targetUsername) {
+      const users = loadUsers();
+      const currentUsername = getCurrentUser();
+      const hacker = users.find(u => u.username === currentUsername);
+      if(hacker.balance < 100) {
+        simMessage.textContent = "Hackleme işlem ücreti için yetersiz bakiye!";
+        return;
+      }
+      currentHackTarget = targetUsername;
+      showHackModal();
+    }
+    // Hack ekranı: Rastgele 4 seçenek oluşturuluyor.
+    function showHackModal() {
+      const modal = document.getElementById("hackModal");
+      const hackOptionsDiv = document.getElementById("hackOptions");
+      // Örnek hack şifreleri (bunları dilediğiniz gibi değiştirebilirsiniz)
+      const codes = ["ALPHA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT"];
+      // Doğru şifreyi rastgele seçelim:
+      hackCorrectCode = codes[Math.floor(Math.random() * codes.length)];
+      // Rastgele 3 yanlış seçenek belirleyelim (doğruyu hariç)
+      let wrongOptions = codes.filter(c => c !== hackCorrectCode);
+      // Karışık ve ilk 3'ünü alalım:
+      wrongOptions = shuffleArray(wrongOptions).slice(0,3);
+      // Tüm seçenekleri karıştırıp gösterelim:
+      const options = shuffleArray([hackCorrectCode, ...wrongOptions]);
+      let html = "";
+      options.forEach(option => {
+        html += `<button onclick="processHackAnswer('${option}')">${option}</button>`;
+      });
+      hackOptionsDiv.innerHTML = html;
+      modal.style.display = "flex";
+    }
+    // Rastgele karıştırma fonksiyonu
+    function shuffleArray(array) {
+      let currentIndex = array.length, temporaryValue, randomIndex;
+      while (0 !== currentIndex) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+      return array;
+    }
+    // Hack cevabının işlenmesi
+    function processHackAnswer(selectedCode) {
+      const users = loadUsers();
+      const currentUsername = getCurrentUser();
+      const hacker = users.find(u => u.username === currentUsername);
+      const target = users.find(u => u.username === currentHackTarget);
+      let message = "";
+      // İşlem ücreti 100\$ kesiliyor (her iki durumda da uygulanıyor)
+      hacker.balance -= 100;
+      if(selectedCode === hackCorrectCode) {
+        // Başarılı hack: hedeften 100\$ çalınıyor (yeterli bakiye kontrolü yapılıyor)
+        const stealAmount = target.balance >= 100 ? 100 : target.balance;
+        target.balance -= stealAmount;
+        hacker.balance += stealAmount;
+        message = `${hacker.username}, ${target.username}'den ${stealAmount} \$ başarıyla çaldı!`;
+      } else {
+        // Yanlış şifre: ceza kesildi (100\$ zaten hack ücreti olarak kesildi)
+        message = `${hacker.username}, yanlış hack şifresi seçildi. 100 \$ ceza uygulandı.`;
+      }
+      updateUser(hacker);
+      updateUser(target);
+      simMessage.textContent = message;
+      currentUserBalanceSpan.textContent = hacker.balance;
+      updateUsersList();
+      updateHackTargetArea();
+      hideHackModal();
+    }
+    function hideHackModal() {
+      document.getElementById("hackModal").style.display = "none";
+    }
+    function cancelHack() {
+      hideHackModal();
     }
 
-    fetchData();
+    /***** Sayfa Yüklendiğinde Oturum Kontrolü *****/
+    window.onload = function(){
+      if(getCurrentUser()) {
+        switchToSimulation();
+      }
+    };
   </script>
-
 </body>
 </html>
