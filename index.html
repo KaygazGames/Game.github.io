@@ -4,111 +4,118 @@
   <meta charset="UTF-8">
   <title>Banka ve Hacker Simülatörü</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background-color: #333; color: #fff; }
-    .message { margin: 10px 0; padding: 10px; background: #e7e7e7; border-left: 5px solid #333; }
-    button { padding: 8px 16px; cursor: pointer; }
+    body { font-family: Arial; padding: 20px; }
+    .hidden { display: none; }
+    input, button { padding: 10px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background-color: #333; color: white; }
   </style>
 </head>
 <body>
-  <h1>Banka ve Hacker Simülatörü</h1>
-  <p>Her hesabın başlangıç bakiyesi 1000 TL'dir. Hesaplar arasında hacklemeler yapabilirsiniz. Başarılı olursanız hedefin bakiyesinden para çalarsınız, yakalanırsanız ceza alırsınız.</p>
-  
-  <div id="accounts"></div>
-  
-  <div>
-    <label for="source">Hacke Başlayacak Hesap:</label>
-    <select id="source"></select>
-    <label for="target">Hedef Hesap:</label>
-    <select id="target"></select>
-    <button id="hackButton">Hackle!</button>
+
+  <h1>Banka & Hacker Simülatörü</h1>
+
+  <!-- Giriş / Kayıt -->
+  <div id="auth-section">
+    <h2>Giriş Yap</h2>
+    <input type="text" id="username" placeholder="Kullanıcı Adı">
+    <input type="password" id="password" placeholder="Şifre">
+    <button onclick="login()">Giriş Yap</button>
+    <div id="loginMessage"></div>
   </div>
-  
-  <div class="message" id="messageArea"></div>
-  
+
+  <!-- Oyunun Ana Bölümü -->
+  <div id="game-section" class="hidden">
+    <h2>Hoş geldin, <span id="currentUser"></span></h2>
+    <p>Bakiye: <strong>$<span id="balance"></span></strong></p>
+
+    <h3>Kullanıcılar:</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Kullanıcı Adı</th>
+          <th>Bakiye</th>
+          <th>Hackle</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>
+
   <script>
-    // Hesaplarımızı oluşturuyoruz.
-    const accounts = [
-      { id: 1, name: "Kullanıcı1", balance: 1000 },
-      { id: 2, name: "Kullanıcı2", balance: 1000 },
-      { id: 3, name: "Kullanıcı3", balance: 1000 },
-      { id: 4, name: "Kullanıcı4", balance: 1000 }
-    ];
+    let users = [];
+    let currentUser = null;
 
-    const accountsDiv = document.getElementById("accounts");
-    const sourceSelect = document.getElementById("source");
-    const targetSelect = document.getElementById("target");
-    const messageArea = document.getElementById("messageArea");
-
-    // Hesap tablosunu güncelleyen fonksiyon.
-    function updateAccountsTable() {
-      let html = '<table><tr><th>ID</th><th>Hesap Adı</th><th>Bakiye (TL)</th></tr>';
-      accounts.forEach(account => {
-        html += `<tr><td>${account.id}</td><td>${account.name}</td><td>${account.balance}</td></tr>`;
-      });
-      html += '</table>';
-      accountsDiv.innerHTML = html;
+    async function fetchData() {
+      try {
+        const response = await fetch('data.json');
+        users = await response.json();
+        console.log("Kullanıcılar yüklendi:", users);
+      } catch (error) {
+        console.error("Veri yüklenemedi:", error);
+      }
     }
 
-    // Seçim kutularını dolduruyoruz.
-    function updateSelectBoxes() {
-      sourceSelect.innerHTML = "";
-      targetSelect.innerHTML = "";
-      accounts.forEach(account => {
-        const option1 = document.createElement("option");
-        option1.value = account.id;
-        option1.textContent = account.name;
-        sourceSelect.appendChild(option1);
+    function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
 
-        const option2 = document.createElement("option");
-        option2.value = account.id;
-        option2.textContent = account.name;
-        targetSelect.appendChild(option2);
+      currentUser = users.find(user => user.username === username && user.password === password);
+      if (currentUser) {
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('game-section').classList.remove('hidden');
+        document.getElementById('currentUser').textContent = currentUser.username;
+        document.getElementById('balance').textContent = currentUser.balance;
+        renderUsers();
+      } else {
+        document.getElementById('loginMessage').textContent = 'Geçersiz kullanıcı adı veya şifre!';
+      }
+    }
+
+    function renderUsers() {
+      const table = document.getElementById('userTable');
+      table.innerHTML = '';
+
+      users.forEach(user => {
+        if (user.username !== currentUser.username) {
+          table.innerHTML += `
+            <tr>
+              <td>${user.username}</td>
+              <td>$${user.balance}</td>
+              <td><button onclick="hack('${user.username}')">Hackle (100$)</button></td>
+            </tr>
+          `;
+        }
       });
     }
 
-    // Başlangıçta tablo ve seçim kutularını güncelle.
-    updateAccountsTable();
-    updateSelectBoxes();
-
-    // Hackleme butonuna tıklanma olayı.
-    document.getElementById("hackButton").addEventListener("click", function(){
-      const sourceId = parseInt(sourceSelect.value);
-      const targetId = parseInt(targetSelect.value);
-
-      if(sourceId === targetId) {
-        messageArea.textContent = "Kendi hesabını hacklemeye çalışmak pek akıllıca değil!";
+    function hack(targetUsername) {
+      const targetUser = users.find(user => user.username === targetUsername);
+      if (currentUser.balance < 100) {
+        alert('Yetersiz bakiye!');
         return;
       }
-      
-      const sourceAcc = accounts.find(acc => acc.id === sourceId);
-      const targetAcc = accounts.find(acc => acc.id === targetId);
-
-      // %50 hackleme başarı şansı.
-      const hackSuccess = Math.random() < 0.5;
-      // %30 yakalanma şansı (hack başarısızsa).
-      const caught = Math.random() < 0.3;
-      
-      if(hackSuccess) {
-        // Hedefin bakiyesinin %10'u kadar para çalınıyor.
-        const stealAmount = Math.floor(targetAcc.balance * 0.1);
-        targetAcc.balance = Math.max(targetAcc.balance - stealAmount, 0);
-        sourceAcc.balance += stealAmount;
-        messageArea.textContent = `${sourceAcc.name}, ${targetAcc.name}'den ${stealAmount} TL başarıyla çaldı!`;
+      currentUser.balance -= 100; // Hackleme ücreti
+      if (Math.random() < 0.5) { // %50 başarı
+        targetUser.balance -= 100;
+        currentUser.balance += 100;
+        alert(`${targetUsername} başarıyla hacklendi!`);
       } else {
-        if(caught) {
-          // Hacker, kendi bakiyesinin %10'u kadar ceza ödüyor.
-          const penalty = Math.floor(sourceAcc.balance * 0.1);
-          sourceAcc.balance = Math.max(sourceAcc.balance - penalty, 0);
-          messageArea.textContent = `${sourceAcc.name}, hackleme sırasında yakalandı! ${penalty} TL ceza ödedi.`;
-        } else {
-          messageArea.textContent = `${sourceAcc.name}'in hackleme girişimi başarısız oldu, ama yakalanmadı.`;
-        }
+        alert('Hackleme başarısız!');
       }
-      updateAccountsTable();
-    });
+      document.getElementById('balance').textContent = currentUser.balance;
+      renderUsers();
+      saveData();
+    }
+
+    async function saveData() {
+      console.log("Güncellenmiş veriler:", users);
+      alert('Veriler güncellenmiştir! (Not: GitHub Pages canlı olarak verileri güncelleyemez.)');
+    }
+
+    fetchData();
   </script>
+
 </body>
 </html>
